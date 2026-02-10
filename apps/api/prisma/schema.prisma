@@ -1,0 +1,114 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum MessageRole {
+  USER
+  AGENT
+  SYSTEM
+}
+
+enum AgentType {
+  SUPPORT
+  ORDER
+  BILLING
+}
+
+enum OrderStatus {
+  PROCESSING
+  DISPATCHED
+  DELIVERED
+  CANCELLED
+}
+
+enum InvoiceStatus {
+  OPEN
+  PAID
+  OVERDUE
+  REFUNDED
+}
+
+enum RefundStatus {
+  REQUESTED
+  APPROVED
+  REJECTED
+  PROCESSED
+}
+
+model User {
+  id            String         @id @default(cuid())
+  email         String         @unique
+  name          String
+  messages      Message[]
+  conversations Conversation[]
+  orders        Order[]
+  invoices      Invoice[]
+  refunds       Refund[]
+  createdAt     DateTime       @default(now())
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  title     String?
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  userId         String?
+  user           User?        @relation(fields: [userId], references: [id])
+  role           MessageRole
+  content        String
+  agentType      AgentType?
+  createdAt      DateTime     @default(now())
+}
+
+model Order {
+  id             String      @id @default(cuid())
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  orderNumber    String      @unique
+  deliveryStatus OrderStatus
+  item           String
+  totalAmount    Float
+  createdAt      DateTime    @default(now())
+}
+
+model Invoice {
+  id        String        @id @default(cuid())
+  userId    String
+  user      User          @relation(fields: [userId], references: [id])
+  invoiceNo String        @unique
+  amount    Float
+  status    InvoiceStatus
+  createdAt DateTime      @default(now())
+  refunds   Refund[]
+}
+
+model Refund {
+  id        String       @id @default(cuid())
+  userId    String
+  user      User         @relation(fields: [userId], references: [id])
+  invoiceId String
+  invoice   Invoice?     @relation(fields: [invoiceId], references: [id])
+  amount    Float
+  status    RefundStatus
+  createdAt DateTime     @default(now())
+}
