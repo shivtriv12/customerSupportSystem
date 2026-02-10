@@ -1,20 +1,44 @@
-import { serve } from '@hono/node-server'
-import { Hono } from 'hono'
-import { cors } from 'hono/cors'
+import 'dotenv/config'
+import { serve } from "@hono/node-server"
+import { Hono } from "hono"
+import { cors } from "hono/cors"
+import { chatRouter } from "./controllers/chat.js"
+import { prisma } from "./lib/db.js"
+import { getAllUsers } from './service/getAllUsers.js'
+import { agentsRouter } from './controllers/agents.js'
 
 const app = new Hono()
 
-// Enable CORS so frontend can call backend
-app.use('/*', cors())
+app.use("*", cors())
 
-// Create a route
-const routes = app.get('/hello', (c) => {
-  return c.json({
-    message: 'Hello from Hono!',
-  })
+app.use("*", async (c, next) => {
+  try {
+    await next()
+  } catch (err) {
+    return c.json({ error: (err as Error).message }, 500)
+  }
 })
 
-// EXPORT THE TYPE (Crucial for RPC)
-export type AppType = typeof routes
+app.get("/api/health", (c) => {
+  return c.json({ status: "ok", timestamp: new Date().toISOString() })
+})
 
-serve(app)
+app.get("/api/users", async (c) => {
+  try {
+    const users = await getAllUsers()
+    return c.json(users)
+  } catch (error) {
+    return c.json({ error: (error as Error).message }, 500)
+  }
+})
+
+app.route("/api/chat", chatRouter)
+app.route("/api/agents", agentsRouter)
+
+const port = 3000
+
+serve({ fetch: app.fetch, port }, () => {
+  console.log(`Server Started`)
+})
+
+export default app
