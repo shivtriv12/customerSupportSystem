@@ -1,135 +1,64 @@
-# Turborepo starter
+# AI Customer Support System
 
-This Turborepo starter is maintained by the Turborepo core team.
+An AI-powered customer support system with a multi-agent architecture. A router agent classifies incoming queries and delegates to specialized sub-agents (Support, Order, Billing), each with tools that query the database. Conversations are persisted and context is maintained across messages.
 
-## Using this example
+## Setup
 
-Run the following command:
+**Prerequisites:** Node 18+, pnpm
 
-```sh
-npx create-turbo@latest
+1. Clone and install:
+
+```bash
+git clone <repo-url>
+cd customerSupportSystem
+pnpm install
 ```
 
-## What's inside?
-
-This Turborepo includes the following packages/apps:
-
-### Apps and Packages
-
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
-
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
+2. Create `apps/api/.env`:
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+DATABASE_URL=postgresql://user:password@localhost:5432/dbname
+OPENROUTER_API_KEY=your_openrouter_api_key
 ```
 
-You can build a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+3. Create a Postgres database, then run migrations and seed:
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+```bash
+cd apps/api
+pnpm exec prisma migrate dev
+pnpm exec prisma db seed
 ```
 
-### Develop
-
-To develop all apps and packages, run the following command:
+4. For the frontend, create `apps/web/.env` if needed (optional for local dev):
 
 ```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+VITE_API_URL=http://localhost:3000
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters):
+5. Run both apps:
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+pnpm dev
 ```
 
-### Remote Caching
+API runs at http://localhost:3000, web at http://localhost:5173. Select a user from the dropdown to start a conversation.
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+## Architecture
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+**Monorepo.** Turborepo with pnpm workspaces. `apps/api` (Hono backend), `apps/web` (React + Vite frontend), `packages/shared` (shared types). The frontend uses Hono RPC with `hc()` and `AppType` from `@repo/api` for end-to-end type safety.
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
+**Controller-service pattern.** Controllers (`chat`, `agents`) handle HTTP, validate input with Zod, and call services. Services (`chats`, `getAllUsers`, `summary`) contain business logic and database access. A global error handler middleware catches thrown errors and returns 500 JSON.
 
-```
-cd my-turborepo
+**Multi-agent system.** The router (`router.ts`) uses an LLM to classify each message into SUPPORT, ORDER, or BILLING. On failure it falls back to SUPPORT. The orchestrator loads conversation history, runs the router, persists the user message, then delegates to the matching agent handler. Each sub-agent has tools that hit the database:
 
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
+- **Support:** `getConversationHistory`, `getConversationMessages` – past conversations for context
+- **Order:** `getOrderDetails`, `checkDeliveryStatus` – orders and delivery state
+- **Billing:** `getInvoice`, `checkRefundStatus` – invoices and refunds
 
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
-```
+**Context compaction.** When a conversation exceeds 20 messages, older messages are summarized by an LLM and stored in `conversation.summary`. The last 8 messages stay as-is. New turns get the summary plus recent messages, so context is preserved without blowing up token usage.
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+**Streaming and UX.** Chat responses stream as NDJSON: `metadata` (conversationId, agentType, routing), `typing` heartbeat every 1.5s, `text` chunks, then `done`. The frontend parses this and shows a "Thinking..." state plus the router’s reasoning when available. Messages and conversations are stored in Postgres.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+**Rate limiting.** In-memory sliding window: 10 requests per minute per user. User identified by `x-user-id` header, `userId` query param, or `x-forwarded-for` fallback.
 
-```
-# With [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.dev/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
-```
-
-## Useful Links
-
-Learn more about the power of Turborepo:
-
-- [Tasks](https://turborepo.dev/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.dev/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.dev/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.dev/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.dev/docs/reference/configuration)
-- [CLI Usage](https://turborepo.dev/docs/reference/command-line-reference)
+**Database.** PostgreSQL with Prisma. The seed creates 5 users, sample orders, invoices, refunds, and a conversation with messages. Prisma is configured with the pg adapter for connection pooling.
