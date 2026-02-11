@@ -17,6 +17,8 @@ You have access to tools to look up conversation history for context.
 Always be polite, concise, and helpful.
 If you cannot resolve an issue, let the user know you'll escalate it.`
 
+type AgentStream = { textStream: AsyncIterable<string> }
+
 export async function handleSupportQuery(context: AgentContext) {
   const result = streamText({
     model: openrouter("google/gemini-2.5-flash"),
@@ -47,5 +49,5 @@ export async function handleSupportQuery(context: AgentContext) {
     stopWhen: stepCountIs(5)
   })
 
-  return result
+  return result as unknown as AgentStream
 }

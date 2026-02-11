@@ -1,58 +1,70 @@
-import { prisma } from "../lib/db.js"
+import { prisma } from "../lib/db.js";
 
-// get invoice+refund
-export async function getInvoiceService(invoiceNo: string) {
+export async function getInvoiceService(invoiceNo: string, userId: string) {
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { invoiceNo },
-      include: { refunds: true }
-    })
+    const invoice = await prisma.invoice.findFirst({
+      where: { invoiceNo, userId },
+      select: {
+        id: true,
+        invoiceNo: true,
+        amount: true,
+        status: true,
+        createdAt: true,
+        userId: true,
+        refunds: {
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
 
-    if (!invoice) return null
+    if (!invoice) return null;
 
-    return {
-      id: invoice.id,
-      invoiceNo: invoice.invoiceNo,
-      amount: invoice.amount,
-      status: invoice.status,
-      createdAt: invoice.createdAt,
-      refunds: invoice.refunds.map(r => ({
-        id: r.id,
-        amount: r.amount,
-        status: r.status,
-        createdAt: r.createdAt
-      }))
-    }
+    return invoice;
   } catch (error) {
-    throw new Error(`Failed to fetch invoice ${invoiceNo}: ${(error as Error).message}`)
+    throw new Error(
+      `Failed to fetch invoice ${invoiceNo}: ${(error as Error).message}`
+    );
   }
 }
 
-// get only refund
-export async function getRefundStatusService(invoiceNo: string) {
+export async function getRefundStatusService(invoiceNo: string, userId: string) {
   try {
-    const invoice = await prisma.invoice.findUnique({
-      where: { invoiceNo },
-      include: {
+    const invoice = await prisma.invoice.findFirst({
+      where: { invoiceNo, userId },
+      select: {
+        userId: true,
         refunds: {
-          orderBy: { createdAt: 'desc' }
-        }
-      }
-    })
+          orderBy: { createdAt: "desc" },
+          select: {
+            id: true,
+            amount: true,
+            status: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
 
-    if (!invoice) return null
+    if (!invoice) return null;
 
     if (invoice.refunds.length === 0) {
-      return { status: 'NO_REFUND_FOUND' }
+      return { status: "NO_REFUND_FOUND", userId: invoice.userId };
     }
 
-    return invoice.refunds.map(r => ({
-      id: r.id,
-      amount: r.amount,
-      status: r.status,
-      createdAt: r.createdAt
-    }))
+    return {
+      userId: invoice.userId,
+      refunds: invoice.refunds,
+    };
   } catch (error) {
-    throw new Error(`Failed to fetch refund status for invoice ${invoiceNo}: ${(error as Error).message}`)
+    throw new Error(
+      `Failed to fetch refund status for invoice ${invoiceNo}: ${
+        (error as Error).message
+      }`
+    );
   }
 }

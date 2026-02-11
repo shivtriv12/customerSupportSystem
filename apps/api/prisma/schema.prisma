@@ -53,13 +53,15 @@ model User {
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  userId    String
-  user      User      @relation(fields: [userId], references: [id])
-  title     String?
-  messages  Message[]
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id               String    @id @default(cuid())
+  userId           String
+  title            String?
+  summary          String? // NEW
+  summaryUpdatedAt DateTime? // NEW
+  messages         Message[]
+  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime  @default(now())
+  user             User      @relation(fields: [userId], references: [id])
 }
 
 model Message {

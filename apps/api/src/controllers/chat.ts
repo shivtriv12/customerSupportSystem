@@ -4,6 +4,7 @@ import { z } from "zod"
 import { orchestrate, saveAgentResponse } from "../agents/orchestrator.js"
 import { listConversationsForUser, getConversationById, deleteConversationById } from "../service/chats.js"
 import type { AgentType } from "../generated/prisma/client.js"
+import { rateLimit } from "../lib/rateLimit.js"
 
 const chatRouter = new Hono()
 
@@ -13,7 +14,7 @@ const sendMessageSchema = z.object({
   message: z.string().min(1)
 })
 
-chatRouter.post("/messages", async (c) => {
+chatRouter.post("/messages",rateLimit, async (c) => {
   const body = await c.req.json()
   const parsed = sendMessageSchema.safeParse(body)
   if (!parsed.success) return c.json({ error: parsed.error.flatten() }, 400)
@@ -51,7 +52,7 @@ const listConvosSchema = z.object({
   userId: z.string().min(1)
 })
 
-chatRouter.get("/conversations", async (c) => {
+chatRouter.get("/conversations", rateLimit, async (c) => {
   const parsed = listConvosSchema.safeParse({ userId: c.req.query("userId") })
   if (!parsed.success) return c.json({ error: "userId query param is required" }, 400)
   const conversations = await listConversationsForUser(parsed.data.userId)
@@ -65,7 +66,7 @@ chatRouter.get("/conversations", async (c) => {
 
 const idParamSchema = z.object({ id: z.string().min(1) })
 
-chatRouter.get("/conversations/:id", async (c) => {
+chatRouter.get("/conversations/:id",rateLimit, async (c) => {
   const parsed = idParamSchema.safeParse({ id: c.req.param("id") })
   if (!parsed.success) return c.json({ error: "id param is required" }, 400)
   const conversation = await getConversationById(parsed.data.id)
@@ -83,7 +84,7 @@ chatRouter.get("/conversations/:id", async (c) => {
   })
 })
 
-chatRouter.delete("/conversations/:id", async (c) => {
+chatRouter.delete("/conversations/:id",rateLimit, async (c) => {
   const parsed = idParamSchema.safeParse({ id: c.req.param("id") })
   if (!parsed.success) return c.json({ error: "id param is required" }, 400)
   const conversation = await getConversationById(parsed.data.id)

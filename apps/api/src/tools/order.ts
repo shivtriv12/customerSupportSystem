@@ -1,47 +1,50 @@
-import { prisma } from "../lib/db.js"
+import { prisma } from "../lib/db.js";
 
-// get full order details
-export async function getOrderDetailsService(orderNumber: string) {
+export async function getOrderDetailsService(orderNumber: string, userId: string) {
   try {
-    const order = await prisma.order.findUnique({
-      where: { orderNumber }
-    })
+    const order = await prisma.order.findFirst({
+      where: { orderNumber, userId },
+      select: {
+        id: true,
+        orderNumber: true,
+        item: true,
+        totalAmount: true,
+        deliveryStatus: true,
+        createdAt: true,
+        userId: true,
+      },
+    });
 
-    if (!order) return null
+    if (!order) return null;
 
-    return {
-      id: order.id,
-      orderNumber: order.orderNumber,
-      item: order.item,
-      totalAmount: order.totalAmount,
-      deliveryStatus: order.deliveryStatus,
-      createdAt: order.createdAt
-    }
+    return order;
   } catch (error) {
-    throw new Error(`Failed to fetch order ${orderNumber}: ${(error as Error).message}`)
+    throw new Error(
+      `Failed to fetch order ${orderNumber}: ${(error as Error).message}`
+    );
   }
 }
 
-// get delivery status only
-export async function getDeliveryStatusService(orderNumber: string) {
+export async function getDeliveryStatusService(orderNumber: string, userId: string) {
   try {
-    const order = await prisma.order.findUnique({
-      where: { orderNumber },
+    const order = await prisma.order.findFirst({
+      where: { orderNumber, userId },
       select: {
         orderNumber: true,
         item: true,
-        deliveryStatus: true
-      }
-    })
+        deliveryStatus: true,
+        userId: true,
+      },
+    });
 
-    if (!order) return null
+    if (!order) return null;
 
-    return {
-      orderNumber: order.orderNumber,
-      item: order.item,
-      deliveryStatus: order.deliveryStatus
-    }
+    return order;
   } catch (error) {
-    throw new Error(`Failed to fetch delivery status for order ${orderNumber}: ${(error as Error).message}`)
+    throw new Error(
+      `Failed to fetch delivery status for order ${orderNumber}: ${
+        (error as Error).message
+      }`
+    );
   }
 }

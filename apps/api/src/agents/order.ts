@@ -16,6 +16,7 @@ const ORDER_SYSTEM_PROMPT = `You are a customer support agent specializing in or
 You have access to tools to look up order information.
 Always ask for the order number if the user hasn't provided one.
 Be clear about order statuses: PROCESSING, DISPATCHED, DELIVERED, CANCELLED.`
+type AgentStream = { textStream: AsyncIterable<string> }
 
 export async function handleOrderQuery(context: AgentContext) {
   const result = streamText({
@@ -29,7 +30,7 @@ export async function handleOrderQuery(context: AgentContext) {
           orderNumber: z.string().describe("The order number, e.g. ORD-001")
         }),
         execute: async ({ orderNumber }: { orderNumber: string }) => {
-          const order = await getOrderDetailsService(orderNumber)
+          const order = await getOrderDetailsService(orderNumber,context.userId)
           if (!order) return JSON.stringify({ error: `Order ${orderNumber} not found` })
           return JSON.stringify(order)
         }
@@ -40,7 +41,7 @@ export async function handleOrderQuery(context: AgentContext) {
           orderNumber: z.string().describe("The order number to check delivery status for")
         }),
         execute: async ({ orderNumber }: { orderNumber: string }) => {
-          const status = await getDeliveryStatusService(orderNumber)
+          const status = await getDeliveryStatusService(orderNumber,context.userId)
           if (!status) return JSON.stringify({ error: `Order ${orderNumber} not found` })
           return JSON.stringify(status)
         }
@@ -49,5 +50,5 @@ export async function handleOrderQuery(context: AgentContext) {
     stopWhen: stepCountIs(5)
   })
 
-  return result
+  return result as unknown as AgentStream
 }

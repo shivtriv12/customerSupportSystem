@@ -18,6 +18,8 @@ Always ask for the invoice number if the user hasn't provided one.
 Be clear about statuses:
 - Invoice: OPEN, PAID, OVERDUE, REFUNDED
 - Refund: REQUESTED, APPROVED, REJECTED, PROCESSED`
+type AgentStream = { textStream: AsyncIterable<string> }
+
 
 export async function handleBillingQuery(context: AgentContext) {
   const result = streamText({
@@ -31,7 +33,7 @@ export async function handleBillingQuery(context: AgentContext) {
           invoiceNo: z.string().describe("The invoice number, e.g. INV-001")
         }),
         execute: async ({ invoiceNo }: { invoiceNo: string }) => {
-          const invoice = await getInvoiceService(invoiceNo)
+          const invoice = await getInvoiceService(invoiceNo,context.userId)
           if (!invoice) return JSON.stringify({ error: `Invoice ${invoiceNo} not found` })
           return JSON.stringify(invoice)
         }
@@ -42,7 +44,7 @@ export async function handleBillingQuery(context: AgentContext) {
           invoiceNo: z.string().describe("The invoice number to check refund status for")
         }),
         execute: async ({ invoiceNo }: { invoiceNo: string }) => {
-          const refund = await getRefundStatusService(invoiceNo)
+          const refund = await getRefundStatusService(invoiceNo,context.userId)
           if (!refund) return JSON.stringify({ error: `Invoice ${invoiceNo} not found` })
           return JSON.stringify(refund)
         }
@@ -51,5 +53,5 @@ export async function handleBillingQuery(context: AgentContext) {
     stopWhen: stepCountIs(5)
   })
 
-  return result
+  return result as unknown as AgentStream
 }
