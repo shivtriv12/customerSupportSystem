@@ -1,4 +1,3 @@
-// apps/web/src/lib/stream.ts
 export async function readNdjsonStream<T>(
   stream: ReadableStream<Uint8Array>,
   onEvent: (event: T) => void,

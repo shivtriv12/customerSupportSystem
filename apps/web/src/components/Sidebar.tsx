@@ -1,4 +1,3 @@
-// apps/web/src/components/Sidebar.tsx
 import { useEffect, useState } from "react"
 import { client } from "../lib/api"
 import { MessageSquarePlus, MessageSquare } from "lucide-react"

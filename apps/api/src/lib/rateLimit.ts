@@ -1,4 +1,3 @@
-// apps/api/src/middleware/rateLimit.ts
 import type { Context, Next } from "hono";
 
 type RateEntry = {

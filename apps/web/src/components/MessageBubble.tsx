@@ -13,8 +13,6 @@ const agentStyles = {
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user'
-  
-  // Determine style based on agent type
   const style = !isUser && message.agentType 
     ? agentStyles[message.agentType] 
     : agentStyles.DEFAULT
@@ -30,15 +28,12 @@ export function MessageBubble({ message }: { message: Message }) {
         isUser ? "flex-row-reverse" : "flex-row"
       )}
     >
-      {/* Avatar */}
       <div className={clsx(
         "shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm",
         isUser ? "bg-black text-white" : `${style.bg} ${style.color}`
       )}>
         <Icon size={16} />
       </div>
-
-      {/* Bubble */}
       <div className={clsx(
         "relative max-w-[80%] px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-sm border",
         isUser 

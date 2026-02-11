@@ -1,4 +1,3 @@
-// apps/api/src/controllers/chat.ts
 import { Hono } from "hono"
 import { stream } from "hono/streaming"
 import { z } from "zod"

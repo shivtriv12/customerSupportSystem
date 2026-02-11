@@ -1,4 +1,3 @@
-// apps/api/src/service/chats.ts
 import { prisma } from "../lib/db.js"
 import type { AgentType, MessageRole } from "@prisma/client"
 

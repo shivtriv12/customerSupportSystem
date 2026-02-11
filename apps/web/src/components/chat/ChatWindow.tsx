@@ -1,4 +1,3 @@
-// apps/web/src/components/chat/ChatWindow.tsx
 import { useEffect, useRef, useState } from "react";
 import type { Message } from "../../types/ui";
 import { MessageBubble } from "./MessageBubble";
@@ -34,7 +33,6 @@ export function ChatWindow({
   const [aiReasoning, setAiReasoning] = useState<string | null>(null);
 
   useEffect(() => {
-    // clear UI when switching users
     setMessages([]);
     setAiStatus(null);
     setLoading(false);

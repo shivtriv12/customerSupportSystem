@@ -1,4 +1,3 @@
-// apps/web/src/hooks/useAgentChat.ts
 import { useState } from "react"
 import { api } from "../lib/api"
 import { readNdjsonStream } from "../lib/stream"
@@ -11,7 +10,6 @@ export type Message = {
   timestamp: Date
 }
 
-// apps/web/src/hooks/useAgentChat.ts
 type AgentType = "SUPPORT" | "ORDER" | "BILLING"
 
 type ConversationResponse = {

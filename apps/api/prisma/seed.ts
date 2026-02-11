@@ -1,6 +1,3 @@
-/*
-  Created with help of AI
-*/
 import 'dotenv/config'
 import pg from 'pg'
 import { PrismaPg } from '@prisma/adapter-pg'
@@ -14,7 +11,6 @@ const prisma = new PrismaClient({adapter})
 async function main() {
   console.log('🌱 Starting seed...')
 
-  // 1. Clean up existing data (Optional but good for re-running)
   await prisma.message.deleteMany()
   await prisma.conversation.deleteMany()
   await prisma.refund.deleteMany()
@@ -22,7 +18,6 @@ async function main() {
   await prisma.order.deleteMany()
   await prisma.user.deleteMany()
 
-  // 2. Create Users
   const users = await Promise.all([
     prisma.user.create({
       data: {
@@ -58,7 +53,6 @@ async function main() {
 
   console.log(`👤 Created ${users.length} users`)
 
-  // 3. Create Orders (Mix of statuses)
   const orders = [
     { userId: users[0].id, orderNumber: 'ORD-001', item: 'Wireless Headphones', totalAmount: 199.99, deliveryStatus: OrderStatus.DELIVERED },
     { userId: users[0].id, orderNumber: 'ORD-002', item: 'USB-C Cable', totalAmount: 19.99, deliveryStatus: OrderStatus.PROCESSING },
@@ -73,17 +67,15 @@ async function main() {
   }
   console.log(`📦 Created ${orders.length} orders`)
 
-  // 4. Create Invoices
   const invoices = [
     { userId: users[0].id, invoiceNo: 'INV-1001', amount: 199.99, status: InvoiceStatus.PAID },
-    { userId: users[0].id, invoiceNo: 'INV-1002', amount: 19.99, status: InvoiceStatus.OPEN }, // Alice hasn't paid this yet
+    { userId: users[0].id, invoiceNo: 'INV-1002', amount: 19.99, status: InvoiceStatus.OPEN },
     { userId: users[1].id, invoiceNo: 'INV-1003', amount: 59.99, status: InvoiceStatus.PAID },
     { userId: users[2].id, invoiceNo: 'INV-1004', amount: 129.99, status: InvoiceStatus.REFUNDED },
     { userId: users[3].id, invoiceNo: 'INV-1005', amount: 45.00, status: InvoiceStatus.OVERDUE },
     { userId: users[4].id, invoiceNo: 'INV-1006', amount: 89.99, status: InvoiceStatus.PAID },
   ]
 
-  // We need to store created invoices to link refunds later
   const createdInvoices = []
   for (const inv of invoices) {
     const created = await prisma.invoice.create({ data: inv })
@@ -91,8 +83,6 @@ async function main() {
   }
   console.log(`🧾 Created ${invoices.length} invoices`)
 
-  // 5. Create Refunds (Only for refunded invoices)
-  // Linking to the invoice for user[2] (Charlie) which is REFUNDED
   const refundedInvoice = createdInvoices.find(i => i.status === InvoiceStatus.REFUNDED)
   
   if (refundedInvoice) {
@@ -104,20 +94,18 @@ async function main() {
         status: RefundStatus.PROCESSED
       }
     })
-    
-    // Create another pending refund request
+
     await prisma.refund.create({
       data: {
         userId: users[0].id,
-        invoiceId: createdInvoices[0].id, // Alice asks for refund on paid item
-        amount: 50.00, // Partial refund
+        invoiceId: createdInvoices[0].id,
+        amount: 50.00,
         status: RefundStatus.REQUESTED
       }
     })
   }
   console.log(`💸 Created 2 refunds`)
 
-  // 6. Create Conversations & Messages
   const conversation = await prisma.conversation.create({
     data: {
       userId: users[0].id,
@@ -135,7 +123,7 @@ async function main() {
       },
       {
         conversationId: conversation.id,
-        role: MessageRole.SYSTEM, // Or AGENT
+        role: MessageRole.SYSTEM,
         content: "Let me check that for you.",
         agentType: AgentType.ORDER
       },
