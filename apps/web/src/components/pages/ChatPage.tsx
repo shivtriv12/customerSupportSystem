@@ -41,7 +41,7 @@ export function ChatPage() {
     };
 
     load();
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     if (!userId) {

@@ -26,6 +26,9 @@ coverage
 out/
 build
 dist
+# Exception: include apps/api/dist for Render deployment artifact (do not commit)
+!apps/api/dist
+!apps/api/dist/**
 
 
 # Debug
