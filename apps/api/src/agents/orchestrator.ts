@@ -4,7 +4,7 @@ import { handleOrderQuery } from "./order.js"
 import { handleBillingQuery } from "./billing.js"
 import { prisma } from "../lib/db.js"
 import type { AgentContext, AgentMessage, AgentRole } from "@repo/shared"
-import type { AgentType } from "../generated/prisma/client.js"
+import type { AgentType } from "@prisma/client"
 import { summarizeMessages } from "../service/summary.js"
 
 type AgentStream = { textStream: AsyncIterable<string> }
@@ -35,11 +35,11 @@ export async function orchestrate(
     }
 
     const previousMessages: AgentMessage[] = conversation
-      ? conversation.messages.map(m => ({
-          role: (m.role as unknown as AgentRole),
-          content: m.content
-        }))
-      : []
+    ? conversation.messages.map((m: { role: string; content: string }) => ({
+        role: m.role as unknown as AgentRole,
+        content: m.content
+      }))
+    : []
 
     const allMessages: AgentMessage[] = [
     ...(conversation?.summary
@@ -91,7 +91,7 @@ function getAgentHandler(agentType: AgentType) {
     SUPPORT: handleSupportQuery,
     ORDER: handleOrderQuery,
     BILLING: handleBillingQuery
-  }
+  } as const
 
   return handlers[agentType]
 }
@@ -131,7 +131,7 @@ async function compactConversation(conversationId: string) {
   const older = convo.messages.slice(0, convo.messages.length - KEEP_LAST)
 
   const newSummary = await summarizeMessages(
-    older.map(m => ({ role: m.role, content: m.content })),
+    older.map((m: { role: string; content: string }) => ({ role: m.role, content: m.content })),
     convo.summary
   )
 
