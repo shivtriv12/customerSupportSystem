@@ -84,6 +84,11 @@ export function ChatPage() {
       }
       content={
         <div className="flex h-full flex-col">
+
+          <div className="border-b border-amber-200 bg-amber-50 px-4 py-2 text-center text-xs text-amber-800">
+            Backend on Render free tier. First request may take up to 1 min due to cold start.
+          </div>
+
           <Topbar selectedUser={selectedUser} loadingUser={usersLoading} />
           {userId ? (
             <ChatWindow userId={userId} conversationId={activeConversationId} />
