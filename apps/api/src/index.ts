@@ -19,7 +19,7 @@ app.use("*", async (c, next) => {
   }
 });
 
-const routes = app
+app
   .get("/health", (c) => {
     return c.json({
       status: "ok",
@@ -37,12 +37,13 @@ const routes = app
   .route("/chat", chatRouter)
   .route("/agents", agentsRouter);
 
-const port = 3000;
+const port = Number(process.env.PORT) || 3000;
 console.log(`Server is running on port ${port}`);
 
 serve({
   fetch: app.fetch,
   port,
+  hostname: "0.0.0.0",
 });
 
 export type AppType = typeof app;

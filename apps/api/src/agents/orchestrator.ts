@@ -7,7 +7,6 @@ import type { AgentContext, AgentMessage, AgentRole } from "@repo/shared"
 import type { AgentType } from "@prisma/client"
 import { summarizeMessages } from "../service/summary.js"
 
-type AgentStream = { textStream: AsyncIterable<string> }
 
 export async function orchestrate(
   userId: string,
